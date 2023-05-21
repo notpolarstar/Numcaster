@@ -35,6 +35,8 @@ CFLAGS += -fvisibility=internal
 LDFLAGS += -flinker-output=nolto-rel
 endif
 
+LDFLAGS += -lm
+
 .PHONY: build
 build: $(BUILD_DIR)/app.nwa
 
@@ -56,11 +58,11 @@ $(BUILD_DIR)/%.elf: $(BUILD_DIR)/%.nwa src/input.txt
 
 $(BUILD_DIR)/app.nwa: $(call object_for,$(src)) $(BUILD_DIR)/icon.o
 	@echo "LD      $@"
-	$(Q) $(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+	$(Q) $(CC) $(CFLAGS) $(LDFLAGS) $^ -lm -lc -lnosys -o $@
 
 $(addprefix $(BUILD_DIR)/,%.o): %.c | $(BUILD_DIR)
 	@echo "CC      $^"
-	$(Q) $(CC) $(CFLAGS) -c $^ -o $@
+	$(Q) $(CC) $(CFLAGS) -c $^ -lm -lc -lnosys -o $@
 
 $(BUILD_DIR)/icon.o: src/icon.png
 	@echo "ICON    $<"
