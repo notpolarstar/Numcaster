@@ -67,15 +67,11 @@ void draw_random_buffer() {
 
 */
 
-void draw_wall(eadk_rect_t wall) {
-  eadk_display_push_rect_uniform(wall, eadk_color_green);
-}
-
-void distance(float a, float b) {
+float distance(float a, float b) {
   return sqrtf((a * a) + (b * b));
 }
 
-void point_in_wall(float x, float y) {
+bool point_in_wall(float x, float y) {
     // Vérifier si les coordonnées x et y sont valides pour la carte
     if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) {
         return false;
@@ -96,7 +92,7 @@ void point_in_wall(float x, float y) {
     }
 }
 
-void horizontal_intersection(float x, float y, float angle) {
+float horizontal_intersection(float x, float y, float angle) {
   bool up = fabsf(floorf(fmod(angle / M_PI, 2.00))) != 0.0;
 
   float first_y = up ? ceilf(y) - y : floorf(y) - y ; 
@@ -114,7 +110,7 @@ void horizontal_intersection(float x, float y, float angle) {
     float current_y = up ? next_y + y : next_y + y - 1.0;
 
     if (point_in_wall(current_x, current_y)) {
-      return;
+      break;
     }
 
     next_x += dx;
@@ -124,7 +120,7 @@ void horizontal_intersection(float x, float y, float angle) {
   return distance(next_x, next_y);
 }
 
-void vertical_intersection(float x, float y, float angle) {
+float vertical_intersection(float x, float y, float angle) {
   bool right = fabsf(floorf(fmod((angle - M_PI_2) / M_PI, 2.00))) != 0.0;
 
   float first_x = right ? ceilf(x) - x : floorf(x) - x;
@@ -142,20 +138,18 @@ void vertical_intersection(float x, float y, float angle) {
     float current_y = next_y + y;
 
     if (point_in_wall(current_x, current_y)) {
-      return;
+      break;
     }
 
     next_x += dx;
     next_y += dy;
   }
   
-  distance(next_x, next_y);
+  return distance(next_x, next_y);
 }
 
-void get_view(float x, float y, float angle) {
+void get_view(float *walls, float x, float y, float angle) {
   float starting_angle = angle + HALF_FOV;
-
-  float walls[EADK_SCREEN_WIDTH];
 
   for (int i = 0; i < EADK_SCREEN_WIDTH; i++)
   {
@@ -166,8 +160,6 @@ void get_view(float x, float y, float angle) {
 
     walls[i] = h_dist > v_dist ? WALL_HEIGHT / v_dist : WALL_HEIGHT / h_dist ;
   }
-  
-  return walls;
 }
 
 void input() {
@@ -210,7 +202,8 @@ void input() {
       player_y = previous_y;
     }
 
-    float walls[EADK_SCREEN_WIDTH] = get_view(player_x, player_y, player_angle);
+    float walls[EADK_SCREEN_WIDTH] = {0};
+	get_view(walls, player_x, player_y, player_angle);
 
     for (int i = 0; i < EADK_SCREEN_WIDTH; i++)
     {
@@ -218,7 +211,6 @@ void input() {
       eadk_display_push_rect_uniform(wall, eadk_color_green);
     }
 
-    draw_wall(test);
     eadk_timing_msleep(20);
   }
 }
