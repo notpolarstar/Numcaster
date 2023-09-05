@@ -12,7 +12,7 @@ const uint32_t eadk_api_level  __attribute__((section(".rodata.eadk_api_level"))
 
 #define MAP_HEIGHT 10
 #define MAP_WIDTH 10
-#define MOVEMENT 1.0
+#define MOVEMENT 0.7
 #define ROTATION 10.0
 #define FOV 60
 #define HALF_FOV 30
@@ -20,7 +20,10 @@ const uint32_t eadk_api_level  __attribute__((section(".rodata.eadk_api_level"))
 #define WALL_HEIGHT 100.0
 #define PRECISION 16
 
-#define DIVISER 4
+int DIVISER = 5;
+
+const eadk_color_t eadk_color_pink = (eadk_color_t)0xFC10;
+const eadk_color_t eadk_color_darkgreen = (eadk_color_t)0x0444;
 
 double incrementAngle = 0.1875;
 
@@ -35,6 +38,17 @@ const int map[MAP_HEIGHT][MAP_WIDTH] = {
   {1,0,0,0,0,0,0,0,0,1},
   {1,0,0,0,0,0,0,0,0,1},
   {1,1,1,1,1,1,1,1,1,1},
+};
+
+const int texture_wall[8][8] = {
+  {1,1,1,1,1,1,1,1},
+  {1,0,0,0,1,0,0,0},
+  {1,1,1,1,1,1,1,1},
+  {0,0,0,1,0,0,0,1},
+  {1,1,1,1,1,1,1,1},
+  {1,0,0,0,1,0,0,0},
+  {1,1,1,1,1,1,1,1},
+  {0,0,0,1,0,0,0,1},
 };
 
 float player_x = 2.0;
@@ -85,7 +99,17 @@ void input() {
       }
     }
 
-    eadk_timing_msleep(20);
+    if (eadk_keyboard_key_down(keyboard, eadk_key_plus)) {
+      DIVISER++;
+    }
+
+    if (eadk_keyboard_key_down(keyboard, eadk_key_minus)) {
+      if (DIVISER > 2) {
+      DIVISER--;
+      }
+    }
+
+    // eadk_timing_msleep(20);
 }
 
 void raycasting() {
@@ -122,19 +146,34 @@ void raycasting() {
 
     int wallHeight = (int)floor(120 / distance);
 
+    int texturePosX = floor((int)(8 * (ray_x + ray_y)) % 8);
+
+    int yIncrementer = (int)ceil((wallHeight * 2) / 8 + 0.5);
+    int yDrawTexture = (EADK_SCREEN_HEIGHT / 2) - wallHeight;
+
+    eadk_color_t wallColor;
+
     if ( (int)(120 - wallHeight) >= 1 )
     {
       eadk_rect_t rect = {raycount, 0, DIVISER, 120 - wallHeight};
       eadk_display_push_rect_uniform( rect, eadk_color_blue);
-      eadk_rect_t rect2 = {raycount, 120 - wallHeight, DIVISER, wallHeight * 2};
-      eadk_display_push_rect_uniform( rect2, eadk_color_red);
+      for (int i = 0; i < 8; i++)
+      {
+        wallColor = texture_wall[i][texturePosX] == 1 ? eadk_color_pink : eadk_color_red;
+        eadk_display_push_rect_uniform((eadk_rect_t){raycount, yDrawTexture, DIVISER, yIncrementer}, wallColor);
+        yDrawTexture += yIncrementer;
+      }
       eadk_rect_t rect3 = {raycount, 120 + wallHeight, DIVISER, 240 - (120 + wallHeight)};
-      eadk_display_push_rect_uniform( rect3, eadk_color_green);
+      eadk_display_push_rect_uniform( rect3, eadk_color_darkgreen);
     }
     else
     {
-      eadk_rect_t rect2 = {raycount, 0, DIVISER, 240};
-      eadk_display_push_rect_uniform( rect2, eadk_color_red);
+      for (int i = 0; i < 8; i++)
+      {
+        wallColor = texture_wall[i][texturePosX] == 1 ? eadk_color_pink : eadk_color_red;
+        eadk_display_push_rect_uniform((eadk_rect_t){raycount, yDrawTexture, DIVISER, yIncrementer}, wallColor);
+        yDrawTexture += yIncrementer;
+      }
     }
     
 
@@ -145,16 +184,24 @@ void raycasting() {
   }
 }
 
+void draw_crosshair() {
+
+  eadk_display_push_rect_uniform((eadk_rect_t){EADK_SCREEN_WIDTH/2 - 5, EADK_SCREEN_HEIGHT/2 - 1, 12, 3}, (eadk_color_t)0xFFE0);
+  eadk_display_push_rect_uniform((eadk_rect_t){EADK_SCREEN_WIDTH/2 - 1, EADK_SCREEN_HEIGHT/2 - 5, 3, 12}, (eadk_color_t)0xFFE0);
+
+}
+
 int main(int argc, char * argv[]) {
 
   while (true)
   {
     raycasting();
     input();
+    draw_crosshair();
 
     //eadk_timing_msleep(500);
 
-    //eadk_display_push_rect_uniform(eadk_screen_rect, eadk_color_black);
+    // eadk_display_push_rect_uniform(eadk_screen_rect, eadk_color_darkgreen);
     eadk_keyboard_state_t keyboard = eadk_keyboard_scan();
 
     //QUIT
